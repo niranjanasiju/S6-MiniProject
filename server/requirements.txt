@@ -1,0 +1,15 @@
+fastapi==0.135.1
+uvicorn==0.41.0
+pydantic==2.12.5
+torch==2.10.0
+numpy==2.4.3
+rdkit==2025.9.3
+requests==2.31.0
+scikit-learn==1.8.0
+streamlit==1.55.0
+pandas==2.3.3
+shap==0.51.0
+python-dotenv==1.2.2
+groq==0.28.0
+torch-geometric==2.7.0
+transformers==4.x.x

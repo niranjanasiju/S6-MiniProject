@@ -1,0 +1,8 @@
+.env
+
+fingerprint_dict.pkl
+
+__pycache__/
+*.pyc
+
+.DS_Store
