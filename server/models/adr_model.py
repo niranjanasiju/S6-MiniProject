@@ -53,6 +53,25 @@ class BERTDrugEncoder(nn.Module):
             return self.proj(self.bert(**enc).last_hidden_state[:, 0, :])
         return torch.cat([self._char_encode(n) for n in names], dim=0).to(device)
 
+class SMILESEncoder(nn.Module):
+    def __init__(self, input_dim=2048, out_dim=256):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, 1024),   # net.0
+            nn.BatchNorm1d(1024),         # net.1
+            nn.ReLU(),                    # net.2
+            nn.Identity(),                # net.3  ✅ filler
+
+            nn.Linear(1024, 512),         # net.4
+            nn.BatchNorm1d(512),          # net.5
+            nn.ReLU(),                    # net.6
+            nn.Identity(),                # net.7  ✅ filler
+
+            nn.Linear(512, out_dim)       # net.8
+        )
+
+    def forward(self, x):
+        return self.net(x)
 
 class ADRHeteroGCN(nn.Module):
     def __init__(self, h=256, o=256):
@@ -93,9 +112,15 @@ class DrugSideEffectModel(nn.Module):
         self.path_emb   = nn.Embedding(n_pw, dim)
         self.bert_enc   = BERTDrugEncoder(dim)
         self.gcn        = ADRHeteroGCN(dim, dim)
-        self.classifier = ADRMLPClassifier(dim * 2, dim * 2, n_se, drop)
+        self.smiles_enc = SMILESEncoder(2048, dim)
+        self.classifier = ADRMLPClassifier(
+        in_dim=768,     # IMPORTANT (see below)
+        hidden=1024,
+        n_cls=n_se,
+        drop=drop
+    )
 
-    def forward(self, drug_idx, drug_names, hdata):
+    def forward(self, drug_idx, drug_names, hdata, smiles_fp):
         dev = drug_idx.device
         x_dict = {
             "drug":        self.drug_emb(hdata["drug"].node_idx.to(dev)),
@@ -106,8 +131,8 @@ class DrugSideEffectModel(nn.Module):
         eid      = {k: v.to(dev) for k, v in hdata.edge_index_dict.items()}
         gcn_emb  = self.gcn(x_dict, eid)["drug"][drug_idx]
         bert_emb = self.bert_enc(drug_names, device=dev)
-        return self.classifier(torch.cat([bert_emb, gcn_emb], dim=-1))
-
+        smiles_emb = self.smiles_enc(smiles_fp.to(dev))
+        return self.classifier(torch.cat([bert_emb, gcn_emb, smiles_emb], dim=-1))
 
 def load_adr_model(
     weights_path : str,
@@ -124,7 +149,8 @@ def load_adr_model(
     dummy_idx   = torch.tensor([0, 1], dtype=torch.long)
     dummy_names = [all_drugs[0], all_drugs[1]]
     with torch.no_grad():
-        _ = model(dummy_idx, dummy_names, hdata)
+        dummy_fp = torch.zeros((2, 2048))
+        _ = model(dummy_idx, dummy_names, hdata, dummy_fp)
     model.load_state_dict(torch.load(weights_path, map_location='cpu'))
     model.eval()
     print("ADR model loaded!")
