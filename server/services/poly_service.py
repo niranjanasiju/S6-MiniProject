@@ -110,7 +110,7 @@ Our ML model analysis found:
 - Risk level: {risk_tier}
 - Predicted side effects: {effects_text}
 
-Provide a response with exactly these 5 sections:
+Provide a response with exactly these 5 sections with each section in a paragraph:
 
 **What is {new_drug}?**
 (1-2 sentences — what is this drug commonly prescribed for?)

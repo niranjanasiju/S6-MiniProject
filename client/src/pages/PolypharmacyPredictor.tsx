@@ -215,11 +215,32 @@ export default function PolypharmacyPredictor() {
                             </div>
                           )}
                           {pair.ai_explanation && (
-                            <div className="mt-4 p-4 bg-slate-950/80 rounded-lg text-sm text-slate-300 border-l-2 border-cyan-500 leading-relaxed shadow-inner">
-                              <span className="block font-medium text-cyan-400 mb-1">AI Insight:</span>
-                              {pair.ai_explanation}
-                            </div>
-                          )}
+  <div className="mt-5 p-6 rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 border border-cyan-500/20 shadow-lg hover:shadow-cyan-500/10 transition-all duration-300">
+
+    {/* Header */}
+    <div className="flex items-center gap-2 mb-4">
+      <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+      <span className="text-cyan-400 font-semibold tracking-wide text-sm uppercase">
+        AI Insight
+      </span>
+    </div>
+
+    {/* Content */}
+    <div className="space-y-4">
+      {pair.ai_explanation.split("\n\n").map((para, index) => (
+        <p
+          key={index}
+          className="text-slate-300/90 text-[15px] leading-7 tracking-wide
+                     first-letter:text-lg first-letter:font-semibold first-letter:text-cyan-300
+                     hover:text-slate-200 transition-colors duration-200"
+        >
+          {para}
+        </p>
+      ))}
+    </div>
+
+  </div>
+)}
                         </>
                       )}
                     </div>
