@@ -1,14 +1,122 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, AlertTriangle, CheckCircle, Info, Loader2 } from 'lucide-react';
+import { Plus, Minus, X, AlertTriangle, CheckCircle, Info, Loader2, ChevronDown } from 'lucide-react';
 import { predictPolypharmacy, searchDrugs } from '../api';
-import type { PredictResponse } from '../types';
+import type { PredictResponse, PredictionPair } from '../types';
 import Autocomplete from '../components/Autocomplete';
+
+const InteractionCard = ({ pair }: { pair: PredictionPair }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden hover:border-slate-700 transition-colors">
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex justify-between items-start p-5 cursor-pointer bg-slate-900/40 hover:bg-slate-800/40 transition-colors"
+      >
+        <div className="flex flex-col gap-3 pr-4">
+          <span className="font-semibold text-white text-lg capitalize">{pair.pair}</span>
+          
+          {pair.side_effects && pair.side_effects.length > 0 && (
+            <div>
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wider block mb-2">Predicted Complications:</span>
+              <div className="flex flex-wrap gap-2">
+                {pair.side_effects.slice(0, 5).map((se, i) => (
+                  <span key={i} className={`text-xs px-2.5 py-1.5 rounded-md inline-flex flex-col items-start ${
+                    se.severity >= 4 ? 'bg-rose-500/10 text-rose-300 border border-rose-500/20' : 
+                    se.severity === 3 ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/20' : 
+                    'bg-slate-800 text-slate-300 border border-slate-700'
+                  }`}>
+                    <span className="font-medium capitalize">{se.effect}</span>
+                    <span className="opacity-70 mt-0.5">{se.probability.toFixed(1)}%</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-4 pl-2 mt-0.5">
+          {pair.risk_tier && (
+            <span className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${
+              pair.risk_tier === 'SAFE' ? 'bg-emerald-500/20 text-emerald-400' :
+              pair.risk_tier === 'AVOID' ? 'bg-rose-500/20 text-rose-400' :
+              'bg-yellow-500/20 text-yellow-400'
+            }`}>
+              {pair.risk_tier} ({pair.safety_score?.toFixed(0)})
+            </span>
+          )}
+          <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform shrink-0 ${isOpen ? 'rotate-180 text-cyan-500' : ''}`} />
+        </div>
+      </div>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-t border-slate-800/50"
+          >
+            <div className={`p-5 bg-slate-900/60 ${pair.error || !pair.ai_explanation ? 'pt-4' : 'pt-5'}`}>
+              {pair.error ? (
+                <p className="text-rose-400 text-sm">{pair.error}</p>
+              ) : (
+                pair.ai_explanation ? (
+                  <div className="p-4 bg-slate-950/80 rounded-lg text-sm text-slate-300 border-l-2 border-cyan-500 shadow-inner leading-relaxed space-y-4">
+                    <div>
+                      <span className="font-semibold text-cyan-400 block mb-1">What is it?</span>
+                      <p>{pair.ai_explanation.what_is_it}</p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-emerald-400 block mb-1">What did we find?</span>
+                      <p>{pair.ai_explanation.what_did_we_find}</p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-yellow-400 block mb-1">Side effects to watch for:</span>
+                      <p>{pair.ai_explanation.side_effects_to_watch}</p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-emerald-400 block mb-1">Safe usage tips:</span>
+                      <p>{pair.ai_explanation.safe_usage_tips}</p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-rose-400 block mb-1">When to call your doctor:</span>
+                      <p>{pair.ai_explanation.when_to_call_doctor}</p>
+                    </div>
+                  </div>
+                ) : (
+                   <p className="text-slate-500 text-sm italic">No AI explanation available.</p>
+                )
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export default function PolypharmacyPredictor() {
   const [newDrug, setNewDrug] = useState('');
   const [currentDrugs, setCurrentDrugs] = useState<string[]>([]);
   const [currentDrugInput, setCurrentDrugInput] = useState('');
+  
+  const [age, setAge] = useState<number | ''>('');
+  const [gender, setGender] = useState<string>('');
+  const [genderOpen, setGenderOpen] = useState(false);
+  const genderRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (genderRef.current && !genderRef.current.contains(e.target as Node)) {
+        setGenderOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,9 +131,10 @@ export default function PolypharmacyPredictor() {
     }
   };
 
-  const handleAddCurrentDrug = () => {
-    if (currentDrugInput.trim() && !currentDrugs.includes(currentDrugInput.trim())) {
-      setCurrentDrugs([...currentDrugs, currentDrugInput.trim()]);
+  const handleAddCurrentDrug = (selectedVal?: any) => {
+    const valToAdd = (typeof selectedVal === 'string' ? selectedVal : currentDrugInput).trim();
+    if (valToAdd && !currentDrugs.includes(valToAdd)) {
+      setCurrentDrugs([...currentDrugs, valToAdd]);
       setCurrentDrugInput('');
     }
   };
@@ -46,6 +155,8 @@ export default function PolypharmacyPredictor() {
       const res = await predictPolypharmacy({
         new_drug: newDrug.trim(),
         current_drugs: currentDrugs,
+        age: age === '' ? undefined : age,
+        gender: gender || undefined,
       });
       setResult(res);
     } catch (err: any) {
@@ -108,6 +219,71 @@ export default function PolypharmacyPredictor() {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-300 mb-2">Age</label>
+                <div className="relative flex items-center w-full bg-slate-950 border border-slate-800 rounded-lg focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500 transition-colors">
+                  <button 
+                    onClick={() => setAge(prev => (typeof prev === 'number' && prev > 0) ? prev - 1 : (prev === '' ? 39 : prev))}
+                    className="p-3 text-slate-500 hover:text-cyan-400 transition-colors rounded-l-lg hover:bg-slate-900"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <input
+                    type="number"
+                    min="0"
+                    max="120"
+                    value={age}
+                    onChange={(e) => setAge(e.target.value ? Number(e.target.value) : '')}
+                    className="flex-1 bg-transparent text-center text-white placeholder-slate-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-medium"
+                  />
+                  <button 
+                    onClick={() => setAge(prev => (typeof prev === 'number' ? prev + 1 : 1))}
+                    className="p-3 text-slate-500 hover:text-cyan-400 transition-colors rounded-r-lg hover:bg-slate-900"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-300 mb-2">Gender</label>
+                <div className="relative w-full" ref={genderRef}>
+                  <div
+                    onClick={() => setGenderOpen(!genderOpen)}
+                    className={`w-full bg-slate-950 border ${genderOpen ? 'border-cyan-500 ring-1 ring-cyan-500' : 'border-slate-800'} rounded-lg py-3 pl-4 pr-10 text-white focus:outline-none transition-colors cursor-pointer flex items-center justify-between font-medium`}
+                  >
+                    <span className={gender ? "capitalize" : "text-slate-500 font-normal"}>{gender || "Select gender..."}</span>
+                    <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 transition-transform pointer-events-none ${genderOpen ? 'rotate-180 text-cyan-500' : ''}`} />
+                  </div>
+                  
+                  <AnimatePresence>
+                    {genderOpen && (
+                      <motion.ul
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-lg shadow-xl overflow-hidden"
+                      >
+                        {['male', 'female', 'other'].map((opt) => (
+                          <li
+                            key={opt}
+                            onClick={() => {
+                              setGender(opt);
+                              setGenderOpen(false);
+                            }}
+                            className={`px-4 py-3 hover:bg-slate-800 cursor-pointer transition-colors border-b border-slate-800/50 last:border-0 capitalize ${gender === opt ? 'text-cyan-400 font-medium bg-slate-800/50' : 'text-slate-200'}`}
+                          >
+                            {opt}
+                          </li>
+                        ))}
+                      </motion.ul>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
             </div>
 
             <button
@@ -179,50 +355,7 @@ export default function PolypharmacyPredictor() {
                 <h3 className="text-lg font-medium text-slate-300 mt-6 mb-2">Interaction Breakdown</h3>
                 <div className="space-y-4">
                   {result.pairs.map((pair, idx) => (
-                    <div key={idx} className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-colors">
-                      <div className="flex justify-between items-start mb-3 border-b border-slate-800/50 pb-3">
-                        <span className="font-semibold text-white text-lg capitalize">{pair.pair}</span>
-                        {pair.risk_tier && (
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${
-                            pair.risk_tier === 'SAFE' ? 'bg-emerald-500/20 text-emerald-400' :
-                            pair.risk_tier === 'AVOID' ? 'bg-rose-500/20 text-rose-400' :
-                            'bg-yellow-500/20 text-yellow-400'
-                          }`}>
-                            {pair.risk_tier} ({pair.safety_score?.toFixed(0)})
-                          </span>
-                        )}
-                      </div>
-                      
-                      {pair.error ? (
-                        <p className="text-rose-400 text-sm mt-2">{pair.error}</p>
-                      ) : (
-                        <>
-                          {pair.side_effects && pair.side_effects.length > 0 && (
-                            <div className="mt-3">
-                              <span className="text-xs font-medium text-slate-500 uppercase tracking-wider block mb-2">Predicted Complications:</span>
-                              <div className="flex flex-wrap gap-2">
-                                {pair.side_effects.slice(0, 5).map((se, i) => (
-                                  <span key={i} className={`text-xs px-2.5 py-1.5 rounded-md inline-flex flex-col items-start ${
-                                    se.severity >= 4 ? 'bg-rose-500/10 text-rose-300 border border-rose-500/20' : 
-                                    se.severity === 3 ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/20' : 
-                                    'bg-slate-800 text-slate-300 border border-slate-700'
-                                  }`}>
-                                    <span className="font-medium capitalize">{se.effect}</span>
-                                    <span className="opacity-70 mt-0.5">{se.probability.toFixed(1)}% prob.</span>
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {pair.ai_explanation && (
-                            <div className="mt-4 p-4 bg-slate-950/80 rounded-lg text-sm text-slate-300 border-l-2 border-cyan-500 leading-relaxed shadow-inner">
-                              <span className="block font-medium text-cyan-400 mb-1">AI Insight:</span>
-                              {pair.ai_explanation}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
+                    <InteractionCard key={idx} pair={pair} />
                   ))}
                 </div>
               </motion.div>

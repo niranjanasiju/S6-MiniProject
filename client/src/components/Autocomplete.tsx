@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AutocompleteProps {
   value: string;
@@ -7,7 +8,7 @@ interface AutocompleteProps {
   fetchSuggestions: (query: string) => Promise<string[]>;
   placeholder?: string;
   className?: string;
-  onSelect?: () => void;
+  onSelect?: (val: string) => void;
 }
 
 export default function Autocomplete({
@@ -69,36 +70,52 @@ export default function Autocomplete({
             if (value.trim()) setOpen(true);
           }}
           placeholder={placeholder}
-          className={`w-full bg-slate-950 border border-slate-800 rounded-lg py-3 pl-10 pr-10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors ${className}`}
+          className={`w-full bg-slate-950 border border-slate-800 rounded-lg py-3 pl-10 pr-10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors font-medium ${className}`}
         />
         {loading && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500 animate-spin" />
         )}
       </div>
 
-      {open && suggestions.length > 0 && (
-        <ul className="absolute z-50 w-full mt-1 bg-slate-900 border border-slate-800 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-          {suggestions.map((s, idx) => (
-            <li
-              key={idx}
-              className="px-4 py-3 hover:bg-slate-800 cursor-pointer text-slate-200 transition-colors border-b border-slate-800/50 last:border-0"
-              onClick={() => {
-                onChange(s);
-                setOpen(false);
-                if (onSelect) onSelect();
-              }}
-            >
-              {s}
-            </li>
-          ))}
-        </ul>
-      )}
+      <AnimatePresence>
+        {open && suggestions.length > 0 && (
+          <motion.ul
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.15 }}
+            className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-lg shadow-xl max-h-60 overflow-y-auto"
+          >
+            {suggestions.map((s, idx) => (
+              <li
+                key={idx}
+                className={`px-4 py-3 hover:bg-slate-800 cursor-pointer transition-colors border-b border-slate-800/50 last:border-0 capitalize ${value.toLowerCase() === s.toLowerCase() ? 'text-cyan-400 font-medium bg-slate-800/50' : 'text-slate-200'}`}
+                onClick={() => {
+                  onChange(s);
+                  setOpen(false);
+                  if (onSelect) onSelect(s);
+                }}
+              >
+                {s}
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
       
-      {open && !loading && value.trim() && suggestions.length === 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-slate-900 border border-slate-800 rounded-lg shadow-xl px-4 py-3 text-slate-500">
-          No matches found.
-        </div>
-      )}
+      <AnimatePresence>
+        {open && !loading && value.trim() && suggestions.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.15 }}
+            className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-lg shadow-xl px-4 py-3 text-slate-500 text-center"
+          >
+            No matches found.
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

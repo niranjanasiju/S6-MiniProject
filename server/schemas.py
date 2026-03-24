@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 
 class PredictRequest(BaseModel):
@@ -34,7 +34,7 @@ class PairResult(BaseModel):
     safety_score   : Optional[float]   = None
     risk_tier      : Optional[str]     = Field(None, description="SAFE | CAUTION | AVOID")
     side_effects   : Optional[List[SideEffectResult]] = None
-    ai_explanation : Optional[str]     = None
+    ai_explanation : Optional[Dict[str, Any]] = None
     error          : Optional[str]     = None
 
 class PredictResponse(BaseModel):
@@ -67,4 +67,4 @@ class ADRResponse(BaseModel):
     targets        : List[str] = Field(description="Biological protein targets")
     pathways       : List[str] = Field(description="Affected biological pathways")
     side_effects   : List[ADRSideEffect]
-    ai_explanation : str
+    ai_explanation : Dict[str, Any]

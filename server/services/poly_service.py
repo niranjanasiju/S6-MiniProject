@@ -5,6 +5,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from groq import Groq
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,6 +14,7 @@ groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 DRUG_ALIASES = {
     'aspirin'    : 'acetylsalicylic acid',
+    'paracetamol': 'acetaminophen',
     'tylenol'    : 'acetaminophen',
     'advil'      : 'ibuprofen',
     'motrin'     : 'ibuprofen',
@@ -96,7 +98,7 @@ def compute_safety_score(effect_probs, top_effects: list, threshold: float = 0.2
 
 
 def get_ai_explanation(new_drug, existing_drug, side_effects,
-                        safety_score, risk_tier, age, gender) -> str:
+                        safety_score, risk_tier, age, gender) -> dict:
     effects_text = (", ".join([e['effect'] for e in side_effects])
                     if side_effects else "no significant side effects detected")
     prompt = f"""You are a helpful medical assistant explaining drug interactions to a patient 
@@ -110,34 +112,31 @@ Our ML model analysis found:
 - Risk level: {risk_tier}
 - Predicted side effects: {effects_text}
 
-Provide a response with exactly these 5 sections:
+Return your response ONLY as a JSON object matching exactly this schema:
+{{
+  "what_is_it": "1-2 sentences — what is {new_drug} commonly prescribed for?",
+  "what_did_we_find": "Explain the safety score and risk level in plain English — what does this mean for the patient in practical terms?",
+  "side_effects_to_watch": "Explain each predicted side effect in simple everyday language a non-medical person would understand. If none, reassure the patient warmly.",
+  "safe_usage_tips": "General awareness about dosage and timing for a {age} year old {gender}. Always note that exact dosage must be confirmed with their doctor.",
+  "when_to_call_doctor": "Specific warning signs they should not ignore, based on the predicted side effects."
+}}
 
-**What is {new_drug}?**
-(1-2 sentences — what is this drug commonly prescribed for?)
-
-**What did we find?**
-(Explain the safety score and risk level in plain English — what does this mean 
-for the patient in practical terms?)
-
-**Side effects to watch for:**
-(Explain each predicted side effect in simple everyday language a non-medical 
-person would understand. If none, reassure the patient warmly.)
-
-**Safe usage tips:**
-(General awareness about dosage and timing for a {age}-year-old {gender}. 
-Always note that exact dosage must be confirmed with their doctor.)
-
-**When to call your doctor:**
-(Specific warning signs they should not ignore, based on the predicted side effects.)
-
-Keep the entire response under 300 words. Use simple everyday language.
-Write as if talking to a worried patient, not a medical professional."""
+Keep each section concise. Use simple everyday language.
+Write as if talking to a worried patient, not a medical professional.
+Output ONLY valid JSON."""
     try:
         response = groq_client.chat.completions.create(
             model    = "llama-3.3-70b-versatile",
             messages = [{"role": "user", "content": prompt}],
-            max_tokens = 500,
+            max_tokens = 600,
+            response_format={"type": "json_object"}
         )
-        return response.choices[0].message.content
+        return json.loads(response.choices[0].message.content)
     except Exception as e:
-        return f"AI explanation unavailable: {str(e)}"
+        return {
+            "what_is_it": f"AI explanation unavailable: {str(e)}",
+            "what_did_we_find": "",
+            "side_effects_to_watch": "",
+            "safe_usage_tips": "",
+            "when_to_call_doctor": ""
+        }

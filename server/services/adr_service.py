@@ -2,6 +2,7 @@ import torch
 from groq import Groq
 import os
 from dotenv import load_dotenv
+import json
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -104,7 +105,7 @@ def predict_adr(
 # ================================
 # AI EXPLANATION (UNCHANGED)
 # ================================
-def get_adr_ai_explanation(drug_name, side_effects, targets, pathways) -> str:
+def get_adr_ai_explanation(drug_name, side_effects, targets, pathways) -> dict:
     effects_text = (
         ", ".join([e['effect'] for e in side_effects[:10]])
         if side_effects else "no significant side effects predicted"
@@ -112,32 +113,39 @@ def get_adr_ai_explanation(drug_name, side_effects, targets, pathways) -> str:
 
     prompt = f"""You are a helpful medical assistant explaining drug side effects to a patient
 in simple, clear language. Be empathetic and avoid medical jargon.
+Never tell the patient to ignore their doctor's advice.
 
 Our AI model analyzed the drug {drug_name} and predicted the following side effects:
 {effects_text}
 
 The drug works on these biological targets: {', '.join(targets[:5]) if targets else 'unknown'}
 
-Provide a brief, friendly explanation with these 3 sections:
+Return your response ONLY as a JSON object matching exactly this schema:
+{{
+  "what_is_it": "1-2 sentences on what {drug_name} is commonly used for.",
+  "what_did_we_find": "Explain the predicted side effect profile in plain English — what does this mean for the patient in practical terms?",
+  "side_effects_to_watch": "Explain the top predicted side effects in plain, everyday language.",
+  "safe_usage_tips": "General awareness about dosage and timing. Always note that exact dosage must be confirmed with their doctor.",
+  "when_to_call_doctor": "Key warning signs a patient should not ignore based on these side effects."
+}}
 
-**What is {drug_name}?**
-(1-2 sentences on what this drug is commonly used for.)
-
-**Possible side effects:**
-(Explain the top predicted side effects in plain, everyday language.)
-
-**What to watch for:**
-(Key warning signs a patient should not ignore.)
-
-Keep the entire response under 200 words. Write as if talking to a worried patient."""
+Keep each section concise. Write as if talking to a worried patient.
+Output ONLY valid JSON."""
 
     try:
         response = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=400,
+            max_tokens=600,
+            response_format={"type": "json_object"}
         )
-        return response.choices[0].message.content
+        return json.loads(response.choices[0].message.content)
 
     except Exception as e:
-        return f"AI explanation unavailable: {str(e)}"
+        return {
+            "what_is_it": f"AI explanation unavailable: {str(e)}",
+            "what_did_we_find": "",
+            "side_effects_to_watch": "",
+            "safe_usage_tips": "",
+            "when_to_call_doctor": ""
+        }

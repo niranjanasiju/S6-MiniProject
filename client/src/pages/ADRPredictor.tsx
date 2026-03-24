@@ -33,7 +33,8 @@ export default function ADRPredictor() {
   };
 
   const handleAnalyze = async () => {
-    if (!drugName.trim()) {
+    const drugToAnalyze = drugName.trim();
+    if (!drugToAnalyze) {
       setError("Please search and select a drug.");
       return;
     }
@@ -42,7 +43,7 @@ export default function ADRPredictor() {
     setResult(null);
     try {
       const res = await predictADR({
-        drug_name: drugName.trim(),
+        drug_name: drugToAnalyze,
         threshold: 0.5
       });
       setResult(res);
@@ -81,7 +82,6 @@ export default function ADRPredictor() {
                 onChange={setDrugName}
                 fetchSuggestions={fetchSuggestions}
                 placeholder="Search drug (e.g. atorvastatin)..."
-                onSelect={handleAnalyze}
               />
             </div>
 
@@ -155,11 +155,36 @@ export default function ADRPredictor() {
                 {/* AI Explanation */}
                 <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 relative overflow-hidden">
                   <ActivitySquare className="absolute -right-4 -bottom-4 w-32 h-32 text-emerald-500/10" />
-                  <h2 className="text-xl font-bold text-white mb-3 relative z-10 flex items-center shadow-emerald-400/20 drop-shadow-lg">
+                  <h2 className="text-xl font-bold text-white mb-5 relative z-10 flex items-center shadow-emerald-400/20 drop-shadow-lg">
                     AI Analysis: {result.drug.toUpperCase()}
                   </h2>
-                  <div className="text-slate-300 leading-relaxed relative z-10 text-sm md:text-base space-y-4 whitespace-pre-wrap">
-                    {result.ai_explanation || "No AI explanation generated."}
+                  <div className="text-slate-300 leading-relaxed relative z-10 text-sm md:text-base space-y-5">
+                    {typeof result.ai_explanation === 'object' && result.ai_explanation !== null ? (
+                      <>
+                        <div>
+                          <span className="font-semibold text-cyan-400 block mb-1">What is it?</span>
+                          <p>{result.ai_explanation.what_is_it}</p>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-emerald-400 block mb-1">What did we find?</span>
+                          <p>{result.ai_explanation.what_did_we_find}</p>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-yellow-400 block mb-1">Side effects to watch for:</span>
+                          <p>{result.ai_explanation.side_effects_to_watch}</p>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-emerald-400 block mb-1">Safe usage tips:</span>
+                          <p>{result.ai_explanation.safe_usage_tips}</p>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-rose-400 block mb-1">When to call your doctor:</span>
+                          <p>{result.ai_explanation.when_to_call_doctor}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <p>{String(result.ai_explanation) || "No AI explanation generated."}</p>
+                    )}
                   </div>
                 </div>
 

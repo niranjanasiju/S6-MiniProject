@@ -60,12 +60,12 @@ class SMILESEncoder(nn.Module):
             nn.Linear(input_dim, 1024),   # net.0
             nn.BatchNorm1d(1024),         # net.1
             nn.ReLU(),                    # net.2
-            nn.Identity(),                # net.3  ✅ filler
+            nn.Identity(),                # net.3  
 
             nn.Linear(1024, 512),         # net.4
             nn.BatchNorm1d(512),          # net.5
             nn.ReLU(),                    # net.6
-            nn.Identity(),                # net.7  ✅ filler
+            nn.Identity(),                # net.7  
 
             nn.Linear(512, out_dim)       # net.8
         )
