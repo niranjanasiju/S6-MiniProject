@@ -1,12 +1,12 @@
-# 💊 MedSafeAI
+# MedSafeAI
 
 > An AI-powered medication safety platform that predicts drug-drug interactions and adverse drug reactions using graph neural networks, molecular fingerprints, and large language models.
 
-🌐 **Live Demo:** [medsafe-ai-alpha.vercel.app](https://medsafe-ai-alpha.vercel.app/)
+**Live Demo:** [medsafe-ai-alpha.vercel.app](https://medsafe-ai-alpha.vercel.app/)
 
 ---
 
-## 📌 Overview
+## Overview
 
 MedSafeAI is a full-stack clinical decision support tool built to help patients and caregivers make safer medication decisions. It offers two core capabilities:
 
@@ -17,7 +17,7 @@ This project was developed as part of the S6 Mini Project — B.Tech Computer Sc
 
 ---
 
-## ✨ Features
+## Features
 
 | Feature | Description |
 |---|---|
@@ -30,7 +30,7 @@ This project was developed as part of the S6 Mini Project — B.Tech Computer Sc
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend (`client/`)
 | Technology | Version | Purpose |
@@ -68,7 +68,7 @@ This project was developed as part of the S6 Mini Project — B.Tech Computer Sc
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 S6-MiniProject/
@@ -107,7 +107,7 @@ S6-MiniProject/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -168,7 +168,7 @@ The app will be available at: `http://localhost:5173`
 
 ---
 
-## 📡 API Reference
+## API Reference
 
 ### General
 
@@ -220,9 +220,9 @@ The app will be available at: `http://localhost:5173`
 
 | Score | Tier | Meaning |
 |---|---|---|
-| ≥ 70 | ✅ `SAFE` | Low interaction risk |
-| 45 – 69 | ⚠️ `CAUTION` | Moderate risk — consult a doctor |
-| < 45 | 🚫 `AVOID` | High risk — potentially dangerous combination |
+| ≥ 70 | `SAFE` | Low interaction risk |
+| 45 – 69 | `CAUTION` | Moderate risk — consult a doctor |
+| < 45 | `AVOID` | High risk — potentially dangerous combination |
 
 ---
 
@@ -271,12 +271,12 @@ Llama 3.3 70B via Groq → Clinical AI explanation
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 MedSafeAI is an **academic research project** and is not intended for real clinical use. It should not be used as a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider before making any medication decisions.
 
 ---
 
-## 📄 License
+## License
 
 This project is for academic purposes only. All rights reserved by the respective authors.
