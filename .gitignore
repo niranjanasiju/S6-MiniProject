@@ -1,1 +1,26 @@
+# Python virtual environment
+server/venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Pytest
+.pytest_cache/
+
+# Environment variables / secrets
+.env
+.env.*
+
+# macOS
 .DS_Store
+
+# Node
+client/node_modules/
+
+# Vite
+client/dist/
+
+# IDE
+.vscode/
+.idea/
